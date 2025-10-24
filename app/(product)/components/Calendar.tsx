@@ -1236,6 +1236,13 @@ function SessionDetailsModal({
     null
   );
   const [isFriend, setIsFriend] = React.useState<boolean>(false);
+  const [leaving, setLeaving] = React.useState<boolean>(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = React.useState<boolean>(false);
+  
+  // Check if user has already left
+  const hasLeft = Boolean(self?.left_at);
+  const otherHasLeft = Boolean(other?.left_at);
+  
   React.useEffect(() => {
     let cancelled = false;
     const checkFriend = async () => {
@@ -1288,6 +1295,28 @@ function SessionDetailsModal({
     } catch (e) {
       setFriendReqStatus((e as Error).message);
       setTimeout(() => setFriendReqStatus(null), 3000);
+    }
+  };
+
+  const leaveSession = async () => {
+    if (!event.id) return;
+    setLeaving(true);
+    try {
+      const res = await fetch(`/api/sessions/${event.id}/leave`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to leave session");
+      
+      // Close modal and refresh events
+      onClose();
+      // You might want to trigger a refresh of the calendar events here
+      window.location.reload(); // Simple refresh for now
+    } catch (e) {
+      alert((e as Error).message);
+    } finally {
+      setLeaving(false);
+      setShowLeaveConfirm(false);
     }
   };
   return (
@@ -1383,6 +1412,16 @@ function SessionDetailsModal({
               <div className="text-xs text-gray-500 mt-1 space-y-0.5 dark:text-gray-400">
                 <div>You selected quiet: {selfQuiet ? "Yes" : "No"}</div>
                 <div>Partner selected quiet: {partnerQuiet ? "Yes" : "No"}</div>
+                {hasLeft && (
+                  <div className="text-orange-600 dark:text-orange-400 font-medium">
+                    You left this session
+                  </div>
+                )}
+                {otherHasLeft && (
+                  <div className="text-orange-600 dark:text-orange-400 font-medium">
+                    Partner left this session
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1413,6 +1452,15 @@ function SessionDetailsModal({
                 Send friend request
               </button>
             )}
+            {/* Leave Session Button - only show if user is participant and hasn't left */}
+            {!isOwner && !hasLeft && (
+              <button
+                onClick={() => setShowLeaveConfirm(true)}
+                className="rounded-md border border-orange-200 bg-orange-50 px-3 py-2 text-sm text-orange-700 hover:bg-orange-100 dark:border-orange-700 dark:bg-orange-900 dark:text-orange-200 dark:hover:bg-orange-800"
+              >
+                Leave Session
+              </button>
+            )}
             {isOwner && (
               <button
                 onClick={handleSave}
@@ -1431,6 +1479,35 @@ function SessionDetailsModal({
           </div>
         </div>
       </div>
+      
+      {/* Leave Session Confirmation Modal */}
+      {showLeaveConfirm && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/70">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-900 dark:text-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              Leave Session
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+              Are you sure you want to leave this session? The other participant will be notified that you've left, but the session will remain available for them to continue.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowLeaveConfirm(false)}
+                className="rounded-md border px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={leaveSession}
+                disabled={leaving}
+                className="rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-50 dark:bg-orange-500 dark:hover:bg-orange-600"
+              >
+                {leaving ? "Leaving..." : "Leave Session"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

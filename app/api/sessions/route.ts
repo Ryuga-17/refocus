@@ -19,6 +19,8 @@ type DbSession = {
     user_id: string;
     joined_at: Date | string;
     quiet?: boolean;
+    left_at?: Date | string;
+    left_reason?: string;
   }>;
 };
 
@@ -136,6 +138,8 @@ export async function GET(req: NextRequest) {
         firstname: usersById[p.user_id]?.firstname ?? undefined,
         lastname: usersById[p.user_id]?.lastname ?? undefined,
         quiet: Boolean(p.quiet),
+        left_at: p.left_at ? String(p.left_at) : undefined,
+        left_reason: p.left_reason,
       })),
       owner: usersById[s.owner_id] ?? null,
       status,
