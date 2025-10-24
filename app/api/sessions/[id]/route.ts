@@ -16,6 +16,8 @@ type SessionDoc = {
     user_id: string;
     joined_at: Date | string;
     quiet?: boolean;
+    left_at?: Date | string;
+    left_reason?: string;
   }>;
 };
 
@@ -39,10 +41,14 @@ export async function GET(
     user_id: string;
     joined_at: string;
     quiet?: boolean;
+    left_at?: string;
+    left_reason?: string;
   }> = (s.session_participants || []).map((p) => ({
     user_id: String(p.user_id),
     joined_at: String(p.joined_at),
     quiet: Boolean(p.quiet),
+    left_at: p.left_at ? String(p.left_at) : undefined,
+    left_reason: p.left_reason,
   }));
   const isBooked = participants.length >= 2;
   const isOwner = String(s.owner_id) === String(userId);
